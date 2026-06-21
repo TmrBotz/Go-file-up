@@ -13,9 +13,8 @@ API_ID = int(os.environ["API_ID"])
 API_HASH = os.environ["API_HASH"]
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 GOFILE_TOKEN = os.environ["GOFILE_TOKEN"]
-PORT = int(os.environ.get("PORT", 8080))
+PORT = int(os.environ.get("PORT", 10000))
 
-# Dummy HTTP server for Render port binding
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -25,7 +24,9 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 def run_http():
-    HTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
+    server = HTTPServer(("0.0.0.0", PORT), Handler)
+    print(f"HTTP server listening on port {PORT}")
+    server.serve_forever()
 
 app = Client("gofile_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
@@ -34,7 +35,6 @@ app = Client("gofile_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN
 ))
 async def handle_file(client: Client, message: Message):
     msg = await message.reply("⬇️ Downloading...")
-
     try:
         file_path = await message.download(in_memory=True)
         file_bytes = bytes(file_path.getbuffer())
@@ -51,7 +51,6 @@ async def handle_file(client: Client, message: Message):
             filename = "file"
 
         await msg.edit("⬆️ Uploading to GoFile...")
-
         result = await upload_to_gofile(file_bytes, filename, GOFILE_TOKEN)
 
         await msg.edit(
@@ -59,7 +58,6 @@ async def handle_file(client: Client, message: Message):
             f"📄 **File:** `{result['filename']}`\n\n"
             f"🔗 **Link:** {result['link']}"
         )
-
     except Exception as e:
         await msg.edit(f"❌ Error: `{str(e)}`")
 
@@ -72,7 +70,8 @@ async def start(client: Client, message: Message):
     )
 
 if __name__ == "__main__":
-    Thread(target=run_http, daemon=True).start()
-    print(f"HTTP server running on port {PORT}")
+    t = Thread(target=run_http, daemon=True)
+    t.start()
+    import time; time.sleep(1)  # port bind hone do pehle
     print("Bot started...")
     app.run()
