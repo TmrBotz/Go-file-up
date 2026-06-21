@@ -1,4 +1,7 @@
 import os
+import asyncio
+from threading import Thread
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from gofile import upload_to_gofile
@@ -10,6 +13,19 @@ API_ID = int(os.environ["API_ID"])
 API_HASH = os.environ["API_HASH"]
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 GOFILE_TOKEN = os.environ["GOFILE_TOKEN"]
+PORT = int(os.environ.get("PORT", 8080))
+
+# Dummy HTTP server for Render port binding
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"OK")
+    def log_message(self, format, *args):
+        pass
+
+def run_http():
+    HTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
 
 app = Client("gofile_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
@@ -40,7 +56,7 @@ async def handle_file(client: Client, message: Message):
 
         await msg.edit(
             f"✅ **Uploaded Successfully!**\n\n"
-            f"📄 **File:** `{result['filename']}`\n"
+            f"📄 **File:** `{result['filename']}`\n\n"
             f"🔗 **Link:** {result['link']}"
         )
 
@@ -56,5 +72,7 @@ async def start(client: Client, message: Message):
     )
 
 if __name__ == "__main__":
+    Thread(target=run_http, daemon=True).start()
+    print(f"HTTP server running on port {PORT}")
     print("Bot started...")
     app.run()
